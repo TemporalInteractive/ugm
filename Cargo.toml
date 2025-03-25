@@ -1,0 +1,26 @@
+[package]
+name = "ugm"
+authors = ["Jason de Wolff <jason.dewolff@temporalinteractive.com>"]
+edition = "2021"
+homepage = "https://github.com/TemporalInteractive/unreliable"
+keywords = ["games", "3d", "models"]
+license = "MIT"
+rust-version = "1.85"
+repository = "https://github.com/TemporalInteractive/ugm"
+version = "0.1.0"
+
+[dependencies]
+anyhow = "1.0.95"
+bytemuck = { version = "1.0.0", features = ["derive"] }
+half = { version = "2.5.0" }
+glam = { version = "0.30.1", features = ["bytemuck"] }
+gltf = { git = "https://github.com/TemporalInteractive/gltf.git", rev = "531bb07", default-features = true, features = ["KHR_materials_emissive_strength", "KHR_materials_ior", "KHR_materials_transmission", "KHR_materials_specular", "KHR_materials_volume", "KHR_materials_specular", "KHR_materials_sheen", "KHR_materials_clearcoat"], optional = true}
+image = "0.25.6"
+speedy = { version = "0.8.7" }
+rayon = "1.0.0"
+wgpu = { git = "https://github.com/gfx-rs/wgpu.git", rev = "3297e9f", default-features = false, optional = true }
+
+[features]
+default = ["gltf"]
+gltf = ["dep:gltf"]
+wgpu = ["dep:wgpu"]
