@@ -1,4 +1,3 @@
-use half::f16;
 use speedy::{Readable, Writable};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Readable, Writable)]
@@ -50,7 +49,6 @@ impl UncompressedTextureFormat {
             Self::Rg8Unorm => Some(&CompressedTextureFormat::Bc5RgUnorm),
             Self::Rgba8Unorm => Some(&CompressedTextureFormat::Bc7RgbaUnorm),
             Self::Rgba32Float => Some(&CompressedTextureFormat::Bc6hRgbUfloat),
-            _ => None,
         }
     }
 

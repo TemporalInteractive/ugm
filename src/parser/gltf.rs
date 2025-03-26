@@ -5,7 +5,7 @@ use image::DynamicImage;
 
 use crate::{
     material::Material,
-    mesh::{generate_normals, generate_tangents, Mesh},
+    mesh::{generate_normals, generate_tangents, pack_vertices, Mesh},
     texture::{Texture, TextureCreateDesc, TextureFormat, UncompressedTextureFormat},
     Model, ModelNode,
 };
@@ -96,6 +96,7 @@ fn process_nodes_recursive(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn process_node(
     document: &gltf::Document,
     node: &gltf::Node,
@@ -358,11 +359,15 @@ fn process_node(
                 );
             }
 
-            let mesh = Mesh::new(
+            let packed_vertices = pack_vertices(
                 mesh_vertex_positions,
                 mesh_vertex_normals,
                 mesh_vertex_tangents,
                 mesh_vertex_tex_coords,
+            );
+
+            let mesh = Mesh::new(
+                packed_vertices,
                 mesh_triangle_material_indices,
                 mesh_indices,
                 opaque,

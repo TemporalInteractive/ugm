@@ -25,27 +25,13 @@ pub struct Mesh {
 
 impl Mesh {
     pub fn new(
-        vertex_positions: Vec<Vec3>,
-        vertex_normals: Vec<Vec3>,
-        vertex_tangents: Vec<Vec4>,
-        vertex_tex_coords: Vec<Vec2>,
+        packed_vertices: Vec<PackedVertex>,
         triangle_material_indices: Vec<u32>,
         indices: Vec<u32>,
         opaque: bool,
         is_emissive: bool,
     ) -> Self {
         debug_assert_eq!(triangle_material_indices.len(), indices.len() / 3);
-
-        let mut packed_vertices = Vec::with_capacity(vertex_positions.len());
-        for i in 0..vertex_positions.len() {
-            packed_vertices.push(PackedVertex {
-                position: vertex_positions[i].to_array(),
-                normal: PackedNormalizedXyz10::new(vertex_normals[i]),
-                tex_coord: vertex_tex_coords[i].to_array(),
-                tangent: PackedNormalizedXyz10::new(vertex_tangents[i].xyz()),
-                tangent_handiness: vertex_tangents[i].w,
-            });
-        }
 
         Mesh {
             packed_vertices,
@@ -55,6 +41,26 @@ impl Mesh {
             is_emissive,
         }
     }
+}
+
+pub fn pack_vertices(
+    vertex_positions: Vec<Vec3>,
+    vertex_normals: Vec<Vec3>,
+    vertex_tangents: Vec<Vec4>,
+    vertex_tex_coords: Vec<Vec2>,
+) -> Vec<PackedVertex> {
+    let mut packed_vertices = Vec::with_capacity(vertex_positions.len());
+    for i in 0..vertex_positions.len() {
+        packed_vertices.push(PackedVertex {
+            position: vertex_positions[i].to_array(),
+            normal: PackedNormalizedXyz10::new(vertex_normals[i]),
+            tex_coord: vertex_tex_coords[i].to_array(),
+            tangent: PackedNormalizedXyz10::new(vertex_tangents[i].xyz()),
+            tangent_handiness: vertex_tangents[i].w,
+        });
+    }
+
+    packed_vertices
 }
 
 pub fn generate_normals(positions: &[Vec3], indices: &[u32]) -> Vec<Vec3> {
