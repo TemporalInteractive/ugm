@@ -1,9 +1,16 @@
+use half::f16;
 use speedy::{Readable, Writable};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Readable, Writable)]
 pub enum TextureFormat {
     Uncompressed(UncompressedTextureFormat),
     Compressed(CompressedTextureFormat),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TextureCompression {
+    Bc,
+    Astc,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Readable, Writable)]
@@ -43,12 +50,18 @@ impl UncompressedTextureFormat {
         width as usize * self.num_channels() * self.bytes_per_channel()
     }
 
-    pub fn try_as_compressed(&self) -> Option<&CompressedTextureFormat> {
-        match self {
-            Self::R8Unorm => Some(&CompressedTextureFormat::Bc4RUnorm),
-            Self::Rg8Unorm => Some(&CompressedTextureFormat::Bc5RgUnorm),
-            Self::Rgba8Unorm => Some(&CompressedTextureFormat::Bc7RgbaUnorm),
-            Self::Rgba32Float => Some(&CompressedTextureFormat::Bc6hRgbUfloat),
+    pub fn try_as_compressed(
+        &self,
+        texture_compression: &TextureCompression,
+    ) -> Option<&CompressedTextureFormat> {
+        match texture_compression {
+            TextureCompression::Bc => match self {
+                Self::R8Unorm => Some(&CompressedTextureFormat::Bc4RUnorm),
+                Self::Rg8Unorm => Some(&CompressedTextureFormat::Bc5RgUnorm),
+                Self::Rgba8Unorm => Some(&CompressedTextureFormat::Bc7RgbaUnorm),
+                Self::Rgba32Float => Some(&CompressedTextureFormat::Bc6hRgbUfloat),
+            },
+            TextureCompression::Astc => todo!("ASTC is not supported yet!"),
         }
     }
 
@@ -133,5 +146,88 @@ impl Texture {
 
     pub fn data(&self) -> &[u8] {
         &self.data
+    }
+
+    pub fn compress(&self, texture_compression: &TextureCompression) -> Option<Self> {
+        if let TextureFormat::Uncompressed(uncompressed_format) = self.format() {
+            if let Some(compressed_format) =
+                uncompressed_format.try_as_compressed(texture_compression)
+            {
+                let data = match compressed_format {
+                    CompressedTextureFormat::Bc4RUnorm => {
+                        let surface = intel_tex_2::RSurface {
+                            width: self.width,
+                            height: self.height,
+                            stride: self.width
+                                * (uncompressed_format.num_channels()
+                                    * uncompressed_format.bytes_per_channel())
+                                    as u32,
+                            data: &self.data,
+                        };
+
+                        intel_tex_2::bc4::compress_blocks(&surface)
+                    }
+                    CompressedTextureFormat::Bc5RgUnorm => {
+                        let surface = intel_tex_2::RgSurface {
+                            width: self.width,
+                            height: self.height,
+                            stride: self.width
+                                * (uncompressed_format.num_channels()
+                                    * uncompressed_format.bytes_per_channel())
+                                    as u32,
+                            data: &self.data,
+                        };
+
+                        intel_tex_2::bc5::compress_blocks(&surface)
+                    }
+                    CompressedTextureFormat::Bc6hRgbUfloat => {
+                        let f32_data = bytemuck::cast_slice(&self.data);
+                        let f16_data: Vec<f16> =
+                            f32_data.iter().copied().map(f16::from_f32).collect();
+
+                        let surface = intel_tex_2::RgbaSurface {
+                            width: self.width,
+                            height: self.height,
+                            stride: self.width
+                                * (uncompressed_format.num_channels()
+                                    * uncompressed_format.bytes_per_channel())
+                                    as u32,
+                            data: bytemuck::cast_slice(&f16_data),
+                        };
+
+                        intel_tex_2::bc6h::compress_blocks(
+                            &intel_tex_2::bc6h::very_fast_settings(),
+                            &surface,
+                        )
+                    }
+                    CompressedTextureFormat::Bc7RgbaUnorm => {
+                        let surface = intel_tex_2::RgbaSurface {
+                            width: self.width,
+                            height: self.height,
+                            stride: self.width
+                                * (uncompressed_format.num_channels()
+                                    * uncompressed_format.bytes_per_channel())
+                                    as u32,
+                            data: &self.data,
+                        };
+
+                        intel_tex_2::bc7::compress_blocks(
+                            &intel_tex_2::bc7::alpha_ultra_fast_settings(),
+                            &surface,
+                        )
+                    }
+                };
+
+                return Some(Self {
+                    name: self.name.clone(),
+                    width: self.width,
+                    height: self.height,
+                    format: TextureFormat::Compressed(*compressed_format),
+                    data,
+                });
+            }
+        }
+
+        None
     }
 }

@@ -10,7 +10,9 @@ use crate::{
     Model, ModelNode,
 };
 
-pub fn parse_glb(data: &[u8]) -> Result<Model> {
+use super::ParseOptions;
+
+pub fn parse_glb(data: &[u8], opt: ParseOptions) -> Result<Model> {
     let (document, buffers, images) = gltf::import_slice(data)?;
 
     let mut meshes = vec![None; document.meshes().len()];
@@ -39,6 +41,7 @@ pub fn parse_glb(data: &[u8]) -> Result<Model> {
                 &mut image_to_texture_mapping,
                 &mut materials,
                 &mut meshes,
+                opt,
             );
         }
     }
@@ -66,6 +69,7 @@ fn process_nodes_recursive(
     image_to_texture_mapping: &mut [Option<u32>],
     materials: &mut Vec<Material>,
     meshes: &mut Vec<Option<Mesh>>,
+    opt: ParseOptions,
 ) {
     nodes.push(process_node(
         document,
@@ -76,6 +80,7 @@ fn process_nodes_recursive(
         image_to_texture_mapping,
         materials,
         meshes,
+        opt,
     ));
     let node_idx = nodes.len() - 1;
 
@@ -92,6 +97,7 @@ fn process_nodes_recursive(
             image_to_texture_mapping,
             materials,
             meshes,
+            opt,
         );
     }
 }
@@ -106,6 +112,7 @@ fn process_node(
     image_to_texture_mapping: &mut [Option<u32>],
     materials: &mut [Material],
     meshes: &mut [Option<Mesh>],
+    opt: ParseOptions,
 ) -> ModelNode {
     let (translation, rotation, scale) = node.transform().decomposed();
     let translation = Vec3::new(translation[0], translation[1], translation[2]);
@@ -221,6 +228,7 @@ fn process_node(
                                     image_to_texture_mapping,
                                     &tex.texture(),
                                     tex.texture().name().unwrap_or("Transmission"),
+                                    opt,
                                 ));
                             }
                         }
@@ -241,6 +249,7 @@ fn process_node(
                                     image_to_texture_mapping,
                                     &tex.texture(),
                                     tex.texture().name().unwrap_or("Clearcoat"),
+                                    opt,
                                 ));
                             }
                             material.clearcoat_roughness = clearcoat.clearcoat_roughness_factor();
@@ -252,6 +261,7 @@ fn process_node(
                                     image_to_texture_mapping,
                                     &tex.texture(),
                                     tex.texture().name().unwrap_or("Clearcoat Roughness"),
+                                    opt,
                                 ));
                             }
                             if let Some(tex) = clearcoat.clearcoat_normal_texture() {
@@ -262,6 +272,7 @@ fn process_node(
                                     image_to_texture_mapping,
                                     &tex.texture(),
                                     tex.texture().name().unwrap_or("Clearcoat Normal"),
+                                    opt,
                                 ));
                             }
                         }
@@ -275,6 +286,7 @@ fn process_node(
                                     image_to_texture_mapping,
                                     &tex.texture(),
                                     tex.texture().name().unwrap_or("Sheen Roughness"),
+                                    opt,
                                 ));
                             }
                             material.sheen_tint = sheen.sheen_color_factor();
@@ -286,6 +298,7 @@ fn process_node(
                                     image_to_texture_mapping,
                                     &tex.texture(),
                                     tex.texture().name().unwrap_or("Sheen Tint"),
+                                    opt,
                                 ));
                             }
                         }
@@ -302,6 +315,7 @@ fn process_node(
                                 image_to_texture_mapping,
                                 &tex.texture(),
                                 tex.texture().name().unwrap_or("Color"),
+                                opt,
                             ));
                         }
 
@@ -313,6 +327,7 @@ fn process_node(
                                 image_to_texture_mapping,
                                 &tex.texture(),
                                 tex.texture().name().unwrap_or("Normal"),
+                                opt,
                             ));
                             material.normal_scale = tex.scale();
                         }
@@ -325,6 +340,7 @@ fn process_node(
                                 image_to_texture_mapping,
                                 &tex.texture(),
                                 tex.texture().name().unwrap_or("Metallic Roughness"),
+                                opt,
                             ));
                         }
 
@@ -336,6 +352,7 @@ fn process_node(
                                 image_to_texture_mapping,
                                 &tex.texture(),
                                 tex.texture().name().unwrap_or("Emission"),
+                                opt,
                             ));
                         }
                     }
@@ -395,6 +412,7 @@ fn process_tex(
     image_to_texture_mapping: &mut [Option<u32>],
     texture: &gltf::Texture,
     name: &str,
+    opt: ParseOptions,
 ) -> u32 {
     match texture.source().source() {
         gltf::image::Source::View { .. } => {
@@ -447,8 +465,15 @@ fn process_tex(
                     }
                 };
 
+                let mut texture = Texture::new(create_desc);
+                if let Some(texture_compression) = &opt.texture_compression {
+                    if let Some(compressed_texture) = texture.compress(texture_compression) {
+                        texture = compressed_texture;
+                    }
+                }
+
                 let texture_idx = internal_images.len() as u32;
-                internal_images.push(Texture::new(create_desc));
+                internal_images.push(texture);
                 image_to_texture_mapping[image_idx] = Some(texture_idx);
                 texture_idx
             }

@@ -3,12 +3,11 @@ use mesh::Mesh;
 use speedy::{Readable, Writable};
 use texture::Texture;
 
+pub mod material;
+pub mod mesh;
+pub mod packing;
 pub mod parser;
-
-mod material;
-mod mesh;
-mod packing;
-mod texture;
+pub mod texture;
 
 #[derive(Debug, Clone, Readable, Writable)]
 pub struct ModelNode {
