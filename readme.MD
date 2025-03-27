@@ -10,7 +10,7 @@ Universal game model is a minimal crate designed as a high performance model for
 - [ ] Mipmap generation
 - [ ] Astc texture compression
 
-## Example
+## Usage
 Serialization and deserialization are handled by [speedy](https://crates.io/crates/speedy). For more info please look at their [docs](https://docs.rs/speedy/0.8.7/speedy/).
 ```rust
 use ugm::{parser::ParseOptions, texture::TextureCompression, Model};

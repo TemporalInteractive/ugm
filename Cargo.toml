@@ -2,7 +2,7 @@
 name = "ugm"
 authors = ["Jason de Wolff <jason.dewolff@temporalinteractive.com>"]
 edition = "2021"
-homepage = "https://github.com/TemporalInteractive/unreliable"
+homepage = "https://github.com/TemporalInteractive/ugm"
 keywords = ["games", "3d", "models"]
 license = "MIT"
 rust-version = "1.85"
