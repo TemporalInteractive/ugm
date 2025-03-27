@@ -1,3 +1,4 @@
+use anyhow::Result;
 use material::Material;
 use mesh::Mesh;
 use speedy::{Readable, Writable};
@@ -26,4 +27,10 @@ pub struct Model {
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
     pub textures: Vec<Texture>,
+}
+
+impl Model {
+    pub fn parse_glb(data: &[u8], opt: parser::ParseOptions) -> Result<Self> {
+        parser::gltf::parse_glb(data, opt)
+    }
 }

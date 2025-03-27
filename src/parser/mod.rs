@@ -1,7 +1,5 @@
 #[cfg(feature = "gltf")]
-mod gltf;
-
-pub use gltf::parse_glb;
+pub(crate) mod gltf;
 
 use crate::texture::TextureCompression;
 

@@ -8,13 +8,13 @@ mod tests {
     #[test]
     fn parse_gltf() {
         let model_bytes = include_bytes!("ToyCar.glb");
-        let _ = ugm::parser::parse_glb(model_bytes, ParseOptions::default()).unwrap();
+        let _ = Model::parse_glb(model_bytes, ParseOptions::default()).unwrap();
     }
 
     #[test]
     fn serialize_model() {
         let model_bytes = include_bytes!("ToyCar.glb");
-        let model = ugm::parser::parse_glb(model_bytes, ParseOptions::default()).unwrap();
+        let model = Model::parse_glb(model_bytes, ParseOptions::default()).unwrap();
 
         let serialized = model.write_to_vec().unwrap();
         let compression_rate = serialized.len() as f32 / model_bytes.len() as f32;
@@ -24,7 +24,7 @@ mod tests {
     #[test]
     fn deserialize_model() {
         let model_bytes = include_bytes!("ToyCar.glb");
-        let model = ugm::parser::parse_glb(model_bytes, ParseOptions::default()).unwrap();
+        let model = Model::parse_glb(model_bytes, ParseOptions::default()).unwrap();
 
         let serialized = model.write_to_vec().unwrap();
         let _ = Model::read_from_buffer(&serialized).unwrap();
@@ -33,7 +33,7 @@ mod tests {
     #[test]
     fn bc_texture_compression() {
         let model_bytes = include_bytes!("ToyCar.glb");
-        let model = ugm::parser::parse_glb(
+        let model = Model::parse_glb(
             model_bytes,
             ParseOptions {
                 texture_compression: Some(TextureCompression::Bc),
@@ -51,7 +51,7 @@ mod tests {
         let model_bytes = include_bytes!("ToyCar.glb");
 
         let now = std::time::Instant::now();
-        let model = ugm::parser::parse_glb(model_bytes, ParseOptions::default()).unwrap();
+        let model = Model::parse_glb(model_bytes, ParseOptions::default()).unwrap();
         let parse_duration = now.elapsed().as_secs_f32();
 
         let serialized = model.write_to_vec().unwrap();

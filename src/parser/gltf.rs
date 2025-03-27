@@ -12,7 +12,7 @@ use crate::{
 
 use super::ParseOptions;
 
-pub fn parse_glb(data: &[u8], opt: ParseOptions) -> Result<Model> {
+pub(crate) fn parse_glb(data: &[u8], opt: ParseOptions) -> Result<Model> {
     let (document, buffers, images) = gltf::import_slice(data)?;
 
     let mut meshes = vec![None; document.meshes().len()];
