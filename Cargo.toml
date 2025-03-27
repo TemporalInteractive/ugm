@@ -16,12 +16,12 @@ anyhow = "1.0.95"
 bytemuck = { version = "1.0.0", features = ["derive"] }
 half = { version = "2.5.0", features = ["bytemuck"] }
 glam = { version = "0.30.1", features = ["bytemuck"] }
-gltf = { git = "https://github.com/TemporalInteractive/gltf.git", rev = "531bb07", default-features = true, features = ["KHR_materials_emissive_strength", "KHR_materials_ior", "KHR_materials_transmission", "KHR_materials_specular", "KHR_materials_volume", "KHR_materials_specular", "KHR_materials_sheen", "KHR_materials_clearcoat"], optional = true}
+gltf = { version = "1.4.1", features = ["KHR_materials_emissive_strength", "KHR_materials_ior", "KHR_materials_transmission", "KHR_materials_specular", "KHR_materials_volume", "KHR_materials_specular"], optional = true }
 image = "0.25.6"
 intel_tex_2 = { version = "0.4.0", default-features = false }
 speedy = { version = "0.8.7" }
 rayon = "1.0.0"
-wgpu = { git = "https://github.com/gfx-rs/wgpu.git", rev = "3297e9f", default-features = false, optional = true }
+wgpu = { version = "24.0.3", optional = true }
 
 [features]
 default = ["gltf"]

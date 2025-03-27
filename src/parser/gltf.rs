@@ -239,69 +239,70 @@ fn process_node(
                             material.specular = specular.specular_factor();
                             material.specular_tint = specular.specular_color_factor();
                         }
-                        if let Some(clearcoat) = prim_material.clearcoat() {
-                            material.clearcoat = clearcoat.clearcoat_factor();
-                            if let Some(tex) = clearcoat.clearcoat_texture() {
-                                material.clearcoat_texture = Some(process_tex(
-                                    document,
-                                    images,
-                                    internal_images,
-                                    image_to_texture_mapping,
-                                    &tex.texture(),
-                                    tex.texture().name().unwrap_or("Clearcoat"),
-                                    opt,
-                                ));
-                            }
-                            material.clearcoat_roughness = clearcoat.clearcoat_roughness_factor();
-                            if let Some(tex) = clearcoat.clearcoat_roughness_texture() {
-                                material.clearcoat_roughness_texture = Some(process_tex(
-                                    document,
-                                    images,
-                                    internal_images,
-                                    image_to_texture_mapping,
-                                    &tex.texture(),
-                                    tex.texture().name().unwrap_or("Clearcoat Roughness"),
-                                    opt,
-                                ));
-                            }
-                            if let Some(tex) = clearcoat.clearcoat_normal_texture() {
-                                material.clearcoat_normal_texture = Some(process_tex(
-                                    document,
-                                    images,
-                                    internal_images,
-                                    image_to_texture_mapping,
-                                    &tex.texture(),
-                                    tex.texture().name().unwrap_or("Clearcoat Normal"),
-                                    opt,
-                                ));
-                            }
-                        }
-                        if let Some(sheen) = prim_material.sheen() {
-                            material.sheen = sheen.sheen_roughness_factor();
-                            if let Some(tex) = sheen.sheen_roughness_texture() {
-                                material.sheen_texture = Some(process_tex(
-                                    document,
-                                    images,
-                                    internal_images,
-                                    image_to_texture_mapping,
-                                    &tex.texture(),
-                                    tex.texture().name().unwrap_or("Sheen Roughness"),
-                                    opt,
-                                ));
-                            }
-                            material.sheen_tint = sheen.sheen_color_factor();
-                            if let Some(tex) = sheen.sheen_color_texture() {
-                                material.sheen_tint_texture = Some(process_tex(
-                                    document,
-                                    images,
-                                    internal_images,
-                                    image_to_texture_mapping,
-                                    &tex.texture(),
-                                    tex.texture().name().unwrap_or("Sheen Tint"),
-                                    opt,
-                                ));
-                            }
-                        }
+                        // Pending PR at gltf-rs: https://github.com/gltf-rs/gltf/pull/446
+                        // if let Some(clearcoat) = prim_material.clearcoat() {
+                        //     material.clearcoat = clearcoat.clearcoat_factor();
+                        //     if let Some(tex) = clearcoat.clearcoat_texture() {
+                        //         material.clearcoat_texture = Some(process_tex(
+                        //             document,
+                        //             images,
+                        //             internal_images,
+                        //             image_to_texture_mapping,
+                        //             &tex.texture(),
+                        //             tex.texture().name().unwrap_or("Clearcoat"),
+                        //             opt,
+                        //         ));
+                        //     }
+                        //     material.clearcoat_roughness = clearcoat.clearcoat_roughness_factor();
+                        //     if let Some(tex) = clearcoat.clearcoat_roughness_texture() {
+                        //         material.clearcoat_roughness_texture = Some(process_tex(
+                        //             document,
+                        //             images,
+                        //             internal_images,
+                        //             image_to_texture_mapping,
+                        //             &tex.texture(),
+                        //             tex.texture().name().unwrap_or("Clearcoat Roughness"),
+                        //             opt,
+                        //         ));
+                        //     }
+                        //     if let Some(tex) = clearcoat.clearcoat_normal_texture() {
+                        //         material.clearcoat_normal_texture = Some(process_tex(
+                        //             document,
+                        //             images,
+                        //             internal_images,
+                        //             image_to_texture_mapping,
+                        //             &tex.texture(),
+                        //             tex.texture().name().unwrap_or("Clearcoat Normal"),
+                        //             opt,
+                        //         ));
+                        //     }
+                        // }
+                        // if let Some(sheen) = prim_material.sheen() {
+                        //     material.sheen = sheen.sheen_roughness_factor();
+                        //     if let Some(tex) = sheen.sheen_roughness_texture() {
+                        //         material.sheen_texture = Some(process_tex(
+                        //             document,
+                        //             images,
+                        //             internal_images,
+                        //             image_to_texture_mapping,
+                        //             &tex.texture(),
+                        //             tex.texture().name().unwrap_or("Sheen Roughness"),
+                        //             opt,
+                        //         ));
+                        //     }
+                        //     material.sheen_tint = sheen.sheen_color_factor();
+                        //     if let Some(tex) = sheen.sheen_color_texture() {
+                        //         material.sheen_tint_texture = Some(process_tex(
+                        //             document,
+                        //             images,
+                        //             internal_images,
+                        //             image_to_texture_mapping,
+                        //             &tex.texture(),
+                        //             tex.texture().name().unwrap_or("Sheen Tint"),
+                        //             opt,
+                        //         ));
+                        //     }
+                        // }
 
                         material.alpha_cutoff = prim_material.alpha_cutoff().unwrap_or(0.5);
                         material.is_opaque = prim_material.alpha_mode() == AlphaMode::Opaque
