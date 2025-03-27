@@ -7,7 +7,9 @@ keywords = ["games", "3d", "models"]
 license = "MIT"
 rust-version = "1.85"
 repository = "https://github.com/TemporalInteractive/ugm"
-version = "0.1.0"
+version = "0.0.1"
+readme = "README.md"
+description = "Universal game model is a minimal crate designed as a high performance model format."
 
 [dependencies]
 anyhow = "1.0.95"

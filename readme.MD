@@ -1,5 +1,7 @@
 # 🌐 Universal Game Model
 
+[![ugm crate](https://img.shields.io/crates/v/ugm.svg)](https://crates.io/crates/ugm)
+
 Universal game model is a minimal crate designed as a high performance model format. Loading times can be very slow when repeatedly parsing a glTF model into a custom engine representation over and over each time a game is loaded up. Ugm solves this by allowing you to convert a glTF model into a ugm model once at bake time, after which it can be loaded directly as is with a 10x performance improvement!
 
 ## Features
