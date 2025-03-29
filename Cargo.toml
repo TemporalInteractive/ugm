@@ -20,7 +20,6 @@ gltf = { version = "1.4.1", features = ["KHR_materials_emissive_strength", "KHR_
 image = "0.25.6"
 intel_tex_2 = { version = "0.4.0", default-features = false }
 speedy = { version = "0.8.7" }
-rayon = "1.0.0"
 wgpu = { version = "24.0.3", optional = true }
 
 [features]

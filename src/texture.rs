@@ -95,7 +95,6 @@ impl CompressedTextureFormat {
             Self::Bc5RgUnorm => wgpu::TextureFormat::Bc5RgUnorm,
             Self::Bc7RgbaUnorm => wgpu::TextureFormat::Bc7RgbaUnorm,
             Self::Bc6hRgbUfloat => wgpu::TextureFormat::Bc6hRgbUfloat,
-            _ => panic!("Failed to convert {:?} to wgpu format.", self),
         }
     }
 }
