@@ -222,7 +222,7 @@ fn process_node(
                         if let Some(transmission) = prim_material.transmission() {
                             material.transmission = transmission.transmission_factor();
                             if let Some(tex) = transmission.transmission_texture() {
-                                material.transmission_texture = Some(process_tex(
+                                material.transmission_texture = Some(process_tex_info(
                                     document,
                                     images,
                                     internal_images,
@@ -240,76 +240,71 @@ fn process_node(
                             material.specular_tint = specular.specular_color_factor();
                         }
                         // Pending PR at gltf-rs: https://github.com/gltf-rs/gltf/pull/446
-                        // if let Some(clearcoat) = prim_material.clearcoat() {
-                        //     material.clearcoat = clearcoat.clearcoat_factor();
-                        //     if let Some(tex) = clearcoat.clearcoat_texture() {
-                        //         material.clearcoat_texture = Some(process_tex(
-                        //             document,
-                        //             images,
-                        //             internal_images,
-                        //             image_to_texture_mapping,
-                        //             &tex.texture(),
-                        //             tex.texture().name().unwrap_or("Clearcoat"),
-                        //             opt,
-                        //         ));
-                        //     }
-                        //     material.clearcoat_roughness = clearcoat.clearcoat_roughness_factor();
-                        //     if let Some(tex) = clearcoat.clearcoat_roughness_texture() {
-                        //         material.clearcoat_roughness_texture = Some(process_tex(
-                        //             document,
-                        //             images,
-                        //             internal_images,
-                        //             image_to_texture_mapping,
-                        //             &tex.texture(),
-                        //             tex.texture().name().unwrap_or("Clearcoat Roughness"),
-                        //             opt,
-                        //         ));
-                        //     }
-                        //     if let Some(tex) = clearcoat.clearcoat_normal_texture() {
-                        //         material.clearcoat_normal_texture = Some(process_tex(
-                        //             document,
-                        //             images,
-                        //             internal_images,
-                        //             image_to_texture_mapping,
-                        //             &tex.texture(),
-                        //             tex.texture().name().unwrap_or("Clearcoat Normal"),
-                        //             opt,
-                        //         ));
-                        //     }
-                        // }
-                        // if let Some(sheen) = prim_material.sheen() {
-                        //     material.sheen = sheen.sheen_roughness_factor();
-                        //     if let Some(tex) = sheen.sheen_roughness_texture() {
-                        //         material.sheen_texture = Some(process_tex(
-                        //             document,
-                        //             images,
-                        //             internal_images,
-                        //             image_to_texture_mapping,
-                        //             &tex.texture(),
-                        //             tex.texture().name().unwrap_or("Sheen Roughness"),
-                        //             opt,
-                        //         ));
-                        //     }
-                        //     material.sheen_tint = sheen.sheen_color_factor();
-                        //     if let Some(tex) = sheen.sheen_color_texture() {
-                        //         material.sheen_tint_texture = Some(process_tex(
-                        //             document,
-                        //             images,
-                        //             internal_images,
-                        //             image_to_texture_mapping,
-                        //             &tex.texture(),
-                        //             tex.texture().name().unwrap_or("Sheen Tint"),
-                        //             opt,
-                        //         ));
-                        //     }
-                        // }
+                        if let Some(clearcoat) = prim_material.clearcoat() {
+                            material.clearcoat = clearcoat.clearcoat_factor();
+                            if let Some(tex) = clearcoat.clearcoat_texture() {
+                                material.clearcoat_texture = Some(process_tex_info(
+                                    document,
+                                    images,
+                                    internal_images,
+                                    image_to_texture_mapping,
+                                    &tex,
+                                    opt,
+                                ));
+                            }
+                            material.clearcoat_roughness = clearcoat.clearcoat_roughness_factor();
+                            if let Some(tex) = clearcoat.clearcoat_roughness_texture() {
+                                material.clearcoat_roughness_texture = Some(process_tex_info(
+                                    document,
+                                    images,
+                                    internal_images,
+                                    image_to_texture_mapping,
+                                    &tex,
+                                    opt,
+                                ));
+                            }
+                            if let Some(tex) = clearcoat.clearcoat_normal_texture() {
+                                material.clearcoat_normal_texture = Some(process_normal_tex(
+                                    document,
+                                    images,
+                                    internal_images,
+                                    image_to_texture_mapping,
+                                    tex,
+                                    opt,
+                                ));
+                            }
+                        }
+                        if let Some(sheen) = prim_material.sheen() {
+                            material.sheen = sheen.sheen_roughness_factor();
+                            if let Some(tex) = sheen.sheen_roughness_texture() {
+                                material.sheen_texture = Some(process_tex_info(
+                                    document,
+                                    images,
+                                    internal_images,
+                                    image_to_texture_mapping,
+                                    &tex,
+                                    opt,
+                                ));
+                            }
+                            material.sheen_tint = sheen.sheen_color_factor();
+                            if let Some(tex) = sheen.sheen_color_texture() {
+                                material.sheen_tint_texture = Some(process_tex_info(
+                                    document,
+                                    images,
+                                    internal_images,
+                                    image_to_texture_mapping,
+                                    &tex,
+                                    opt,
+                                ));
+                            }
+                        }
 
                         material.alpha_cutoff = prim_material.alpha_cutoff().unwrap_or(0.5);
                         material.is_opaque = prim_material.alpha_mode() == AlphaMode::Opaque
                             || material.alpha_cutoff == 0.0;
 
                         if let Some(tex) = pbr.base_color_texture() {
-                            material.color_texture = Some(process_tex(
+                            material.color_texture = Some(process_tex_info(
                                 document,
                                 images,
                                 internal_images,
@@ -320,20 +315,19 @@ fn process_node(
                         }
 
                         if let Some(tex) = prim_material.normal_texture() {
-                            material.normal_texture = Some(process_tex(
+                            material.normal_scale = tex.scale();
+                            material.normal_texture = Some(process_normal_tex(
                                 document,
                                 images,
                                 internal_images,
                                 image_to_texture_mapping,
-                                &tex.texture(),
-                                tex.texture().name().unwrap_or("Normal"),
+                                tex,
                                 opt,
                             ));
-                            material.normal_scale = tex.scale();
                         }
 
                         if let Some(tex) = pbr.metallic_roughness_texture() {
-                            material.metallic_roughness_texture = Some(process_tex(
+                            material.metallic_roughness_texture = Some(process_tex_info(
                                 document,
                                 images,
                                 internal_images,
@@ -344,7 +338,7 @@ fn process_node(
                         }
 
                         if let Some(tex) = prim_material.emissive_texture() {
-                            material.emission_texture = Some(process_tex(
+                            material.emission_texture = Some(process_tex_info(
                                 document,
                                 images,
                                 internal_images,
@@ -406,7 +400,7 @@ fn process_node(
     }
 }
 
-fn process_tex(
+fn process_tex_info(
     document: &gltf::Document,
     images: &[gltf::image::Data],
     internal_images: &mut Vec<Texture>,
@@ -415,9 +409,53 @@ fn process_tex(
     opt: ParseOptions,
 ) -> u32 {
     let texture = texture_info.texture();
+    let texture_transform = texture_info.texture_transform();
+
+    process_tex(
+        document,
+        images,
+        internal_images,
+        image_to_texture_mapping,
+        texture,
+        texture_transform,
+        opt,
+    )
+}
+
+fn process_normal_tex(
+    document: &gltf::Document,
+    images: &[gltf::image::Data],
+    internal_images: &mut Vec<Texture>,
+    image_to_texture_mapping: &mut [Option<u32>],
+    normal_tex: gltf::material::NormalTexture,
+    opt: ParseOptions,
+) -> u32 {
+    let texture = normal_tex.texture();
+    let texture_transform = normal_tex.texture_transform();
+
+    process_tex(
+        document,
+        images,
+        internal_images,
+        image_to_texture_mapping,
+        texture,
+        texture_transform,
+        opt,
+    )
+}
+
+fn process_tex(
+    document: &gltf::Document,
+    images: &[gltf::image::Data],
+    internal_images: &mut Vec<Texture>,
+    image_to_texture_mapping: &mut [Option<u32>],
+    texture: gltf::texture::Texture,
+    texture_transform: Option<gltf::texture::TextureTransform>,
+    opt: ParseOptions,
+) -> u32 {
     let name = texture.name().unwrap_or("Unnamed");
 
-    let (uv_offset, uv_scale) = if let Some(transform) = texture_info.texture_transform() {
+    let (uv_offset, uv_scale) = if let Some(transform) = texture_transform {
         (transform.offset(), transform.scale())
     } else {
         ([0.0; 2], [1.0; 2])
