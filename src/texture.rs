@@ -1,5 +1,6 @@
 use half::f16;
 use speedy::{Readable, Writable};
+use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Readable, Writable)]
 pub enum TextureFormat {
@@ -105,30 +106,42 @@ pub struct TextureCreateDesc<'a> {
     pub height: u32,
     pub format: TextureFormat,
     pub data: Vec<u8>,
+    pub uv_offset: [f32; 2],
+    pub uv_scale: [f32; 2],
 }
 
 #[derive(Debug, Clone, Readable, Writable)]
 pub struct Texture {
     name: String,
+    uuid: Uuid,
     width: u32,
     height: u32,
     format: TextureFormat,
     data: Vec<u8>,
+    uv_offset: [f32; 2],
+    uv_scale: [f32; 2],
 }
 
 impl Texture {
     pub fn new(desc: TextureCreateDesc) -> Self {
         Self {
             name: desc.name.unwrap_or("Unnamed").to_owned(),
+            uuid: Uuid::new_v4(),
             width: desc.width,
             height: desc.height,
             format: desc.format,
             data: desc.data,
+            uv_offset: desc.uv_offset,
+            uv_scale: desc.uv_scale,
         }
     }
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn uuid(&self) -> Uuid {
+        self.uuid
     }
 
     pub fn width(&self) -> u32 {
@@ -145,6 +158,14 @@ impl Texture {
 
     pub fn data(&self) -> &[u8] {
         &self.data
+    }
+
+    pub fn uv_offset(&self) -> [f32; 2] {
+        self.uv_offset
+    }
+
+    pub fn uv_scale(&self) -> [f32; 2] {
+        self.uv_scale
     }
 
     pub fn compress(&self, texture_compression: &TextureCompression) -> Option<Self> {
@@ -219,14 +240,75 @@ impl Texture {
 
                 return Some(Self {
                     name: self.name.clone(),
+                    uuid: Uuid::new_v4(),
                     width: self.width,
                     height: self.height,
                     format: TextureFormat::Compressed(*compressed_format),
                     data,
+                    uv_offset: self.uv_offset,
+                    uv_scale: self.uv_scale,
                 });
             }
         }
 
         None
+    }
+
+    #[cfg(feature = "wgpu")]
+    pub fn create_wgpu_texture(
+        &self,
+        usage: wgpu::TextureUsages,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> (wgpu::Texture, wgpu::TextureView) {
+        let (format, bytes_per_row) = match &self.format {
+            TextureFormat::Compressed(format) => {
+                (format.to_wgpu(), format.bytes_per_row(self.width))
+            }
+            TextureFormat::Uncompressed(format) => {
+                (format.to_wgpu(), format.bytes_per_row(self.width))
+            }
+        };
+
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            size: wgpu::Extent3d {
+                width: self.width,
+                height: self.height,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format,
+            usage: usage | wgpu::TextureUsages::COPY_DST,
+            label: Some(&self.name),
+            view_formats: &[],
+        });
+        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor {
+            dimension: Some(wgpu::TextureViewDimension::D2),
+            ..Default::default()
+        });
+
+        queue.write_texture(
+            wgpu::TexelCopyTextureInfo {
+                texture: &texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            &self.data,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(bytes_per_row as u32),
+                rows_per_image: None,
+            },
+            wgpu::Extent3d {
+                width: self.width,
+                height: self.height,
+                depth_or_array_layers: 1,
+            },
+        );
+
+        (texture, texture_view)
     }
 }

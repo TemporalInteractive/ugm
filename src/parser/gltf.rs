@@ -203,6 +203,7 @@ fn process_node(
                     let material = &mut materials[material_idx];
                     if material.index.is_none() {
                         material.index = Some(material_idx);
+                        material.name = prim_material.name().unwrap_or("Unnamed").to_owned();
 
                         material.color = Vec4::from(pbr.base_color_factor()).xyz().to_array();
                         material.metallic = pbr.metallic_factor();
@@ -226,8 +227,7 @@ fn process_node(
                                     images,
                                     internal_images,
                                     image_to_texture_mapping,
-                                    &tex.texture(),
-                                    tex.texture().name().unwrap_or("Transmission"),
+                                    &tex,
                                     opt,
                                 ));
                             }
@@ -314,8 +314,7 @@ fn process_node(
                                 images,
                                 internal_images,
                                 image_to_texture_mapping,
-                                &tex.texture(),
-                                tex.texture().name().unwrap_or("Color"),
+                                &tex,
                                 opt,
                             ));
                         }
@@ -339,8 +338,7 @@ fn process_node(
                                 images,
                                 internal_images,
                                 image_to_texture_mapping,
-                                &tex.texture(),
-                                tex.texture().name().unwrap_or("Metallic Roughness"),
+                                &tex,
                                 opt,
                             ));
                         }
@@ -351,8 +349,7 @@ fn process_node(
                                 images,
                                 internal_images,
                                 image_to_texture_mapping,
-                                &tex.texture(),
-                                tex.texture().name().unwrap_or("Emission"),
+                                &tex,
                                 opt,
                             ));
                         }
@@ -375,6 +372,9 @@ fn process_node(
                     &mesh_vertex_tex_coords,
                     &mesh_indices,
                 );
+            }
+            if mesh_vertex_tex_coords.is_empty() {
+                mesh_vertex_tex_coords = vec![Vec2::ZERO; mesh_vertex_positions.len()];
             }
 
             let packed_vertices = pack_vertices(
@@ -411,60 +411,143 @@ fn process_tex(
     images: &[gltf::image::Data],
     internal_images: &mut Vec<Texture>,
     image_to_texture_mapping: &mut [Option<u32>],
-    texture: &gltf::Texture,
-    name: &str,
+    texture_info: &gltf::texture::Info,
     opt: ParseOptions,
 ) -> u32 {
+    let texture = texture_info.texture();
+    let name = texture.name().unwrap_or("Unnamed");
+
+    let (uv_offset, uv_scale) = if let Some(transform) = texture_info.texture_transform() {
+        (transform.offset(), transform.scale())
+    } else {
+        ([0.0; 2], [1.0; 2])
+    };
+
     match texture.source().source() {
         gltf::image::Source::View { .. } => {
-            let texture_idx = texture.index();
-            let image_idx = document
-                .textures()
-                .nth(texture_idx)
-                .unwrap()
-                .source()
-                .index();
+            let texture_idx = texture.index(); // TODO???
+
+            let texture = document.textures().nth(texture_idx).unwrap(); // TODO ???
+            let image_idx = texture.source().index();
 
             if let Some(texture_idx) = &image_to_texture_mapping[image_idx] {
                 *texture_idx
             } else {
                 let data = images[image_idx].clone();
 
-                let create_desc = if data.format == gltf::image::Format::R8G8B8 {
-                    let dynamic_image = DynamicImage::ImageRgb8(
-                        image::RgbImage::from_raw(data.width, data.height, data.pixels).unwrap(),
-                    );
-                    let image = dynamic_image.to_rgba8();
+                let create_desc = match data.format {
+                    gltf::image::Format::R8G8B8 => {
+                        let dynamic_image = DynamicImage::ImageRgb8(
+                            image::RgbImage::from_raw(data.width, data.height, data.pixels)
+                                .unwrap(),
+                        );
+                        let image = dynamic_image.to_rgba8();
 
-                    TextureCreateDesc {
-                        name: Some(name),
-                        width: data.width,
-                        height: data.height,
-                        format: TextureFormat::Uncompressed(UncompressedTextureFormat::Rgba8Unorm),
-                        data: image.as_raw().clone(),
+                        TextureCreateDesc {
+                            name: Some(name),
+                            width: data.width,
+                            height: data.height,
+                            format: TextureFormat::Uncompressed(
+                                UncompressedTextureFormat::Rgba8Unorm,
+                            ),
+                            data: image.as_raw().clone(),
+                            uv_offset,
+                            uv_scale,
+                        }
                     }
-                } else {
-                    let format = match data.format {
-                        gltf::image::Format::R8G8B8A8 => {
-                            TextureFormat::Uncompressed(UncompressedTextureFormat::Rgba8Unorm)
+                    gltf::image::Format::R16G16B16 => {
+                        let mut u8_pixels = vec![];
+                        for y in 0..data.width {
+                            for x in 0..data.height {
+                                for c in 0..3 {
+                                    let i = ((y * data.width + x) * 3 + c) as usize;
+                                    let u16_value = u16::from_le_bytes([
+                                        data.pixels[i * 2],
+                                        data.pixels[i * 2 + 1],
+                                    ]);
+                                    u8_pixels.push((u16_value / 257) as u8);
+                                }
+                            }
                         }
-                        gltf::image::Format::R8G8 => {
-                            TextureFormat::Uncompressed(UncompressedTextureFormat::Rg8Unorm)
-                        }
-                        gltf::image::Format::R8 => {
-                            TextureFormat::Uncompressed(UncompressedTextureFormat::R8Unorm)
-                        }
-                        _ => panic!("Unsupported image type: {:?}.", data.format),
-                    };
 
-                    TextureCreateDesc {
-                        name: Some(name),
-                        width: data.width,
-                        height: data.height,
-                        format,
-                        data: data.pixels,
+                        let dynamic_image = DynamicImage::ImageRgb8(
+                            image::RgbImage::from_raw(data.width, data.height, u8_pixels).unwrap(),
+                        );
+                        let image = dynamic_image.to_rgba8();
+
+                        TextureCreateDesc {
+                            name: Some(name),
+                            width: data.width,
+                            height: data.height,
+                            format: TextureFormat::Uncompressed(
+                                UncompressedTextureFormat::Rgba8Unorm,
+                            ),
+                            data: image.as_raw().clone(),
+                            uv_offset,
+                            uv_scale,
+                        }
+                    }
+                    _ => {
+                        let format = match data.format {
+                            gltf::image::Format::R8G8B8A8 => {
+                                TextureFormat::Uncompressed(UncompressedTextureFormat::Rgba8Unorm)
+                            }
+                            gltf::image::Format::R8G8 => {
+                                TextureFormat::Uncompressed(UncompressedTextureFormat::Rg8Unorm)
+                            }
+                            gltf::image::Format::R8 => {
+                                TextureFormat::Uncompressed(UncompressedTextureFormat::R8Unorm)
+                            }
+                            _ => panic!("Unsupported image type: {:?}.", data.format),
+                        };
+
+                        TextureCreateDesc {
+                            name: Some(name),
+                            width: data.width,
+                            height: data.height,
+                            format,
+                            data: data.pixels,
+                            uv_offset,
+                            uv_scale,
+                        }
                     }
                 };
+
+                // let create_desc = if data.format == gltf::image::Format::R8G8B8 {
+                //     let dynamic_image = DynamicImage::ImageRgb8(
+                //         image::RgbImage::from_raw(data.width, data.height, data.pixels).unwrap(),
+                //     );
+                //     let image = dynamic_image.to_rgba8();
+
+                //     TextureCreateDesc {
+                //         name: Some(name),
+                //         width: data.width,
+                //         height: data.height,
+                //         format: TextureFormat::Uncompressed(UncompressedTextureFormat::Rgba8Unorm),
+                //         data: image.as_raw().clone(),
+                //     }
+                // } else {
+                //     let format = match data.format {
+                //         gltf::image::Format::R8G8B8A8 => {
+                //             TextureFormat::Uncompressed(UncompressedTextureFormat::Rgba8Unorm)
+                //         }
+                //         gltf::image::Format::R8G8 => {
+                //             TextureFormat::Uncompressed(UncompressedTextureFormat::Rg8Unorm)
+                //         }
+                //         gltf::image::Format::R8 => {
+                //             TextureFormat::Uncompressed(UncompressedTextureFormat::R8Unorm)
+                //         }
+                //         _ => panic!("Unsupported image type: {:?}.", data.format),
+                //     };
+
+                //     TextureCreateDesc {
+                //         name: Some(name),
+                //         width: data.width,
+                //         height: data.height,
+                //         format,
+                //         data: data.pixels,
+                //     }
+                // };
 
                 let mut texture = Texture::new(create_desc);
                 if let Some(texture_compression) = &opt.texture_compression {

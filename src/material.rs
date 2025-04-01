@@ -3,6 +3,7 @@ use speedy::{Readable, Writable};
 #[derive(Debug, Clone, Readable, Writable)]
 pub struct Material {
     pub index: Option<usize>,
+    pub name: String,
 
     pub color: [f32; 3],
     pub color_texture: Option<u32>,
@@ -43,6 +44,7 @@ impl Default for Material {
     fn default() -> Self {
         Material {
             index: None,
+            name: "Unnamed".to_owned(),
             color: [1.0; 3],
             color_texture: None,
             metallic: 0.0,

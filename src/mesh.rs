@@ -90,6 +90,10 @@ pub fn generate_tangents(
     tex_coords: &[Vec2],
     indices: &[u32],
 ) -> Vec<Vec4> {
+    if tex_coords.is_empty() {
+        return vec![Vec4::ZERO; positions.len()];
+    }
+
     // Source: 2001. http://www.terathon.com/code/tangent.html
     let mut tan1 = vec![Vec3::default(); positions.len()];
     let mut tan2 = vec![Vec3::default(); positions.len()];
