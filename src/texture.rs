@@ -258,10 +258,11 @@ impl Texture {
     pub fn create_wgpu_texture(
         &self,
         usage: wgpu::TextureUsages,
+        srgb: bool,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> (wgpu::Texture, wgpu::TextureView) {
-        let (format, bytes_per_row) = match &self.format {
+        let (mut format, bytes_per_row) = match &self.format {
             TextureFormat::Compressed(format) => {
                 (format.to_wgpu(), format.bytes_per_row(self.width))
             }
@@ -269,6 +270,10 @@ impl Texture {
                 (format.to_wgpu(), format.bytes_per_row(self.width))
             }
         };
+
+        if srgb {
+            format = format.add_srgb_suffix();
+        }
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             size: wgpu::Extent3d {
