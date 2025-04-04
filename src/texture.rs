@@ -86,7 +86,7 @@ impl CompressedTextureFormat {
     }
 
     pub fn bytes_per_row(&self, width: u32) -> usize {
-        ((width + 3) / 4) as usize * self.block_size()
+        width.div_ceil(4) as usize * self.block_size()
     }
 
     #[cfg(feature = "wgpu")]
