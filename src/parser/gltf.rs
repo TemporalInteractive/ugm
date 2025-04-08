@@ -473,117 +473,239 @@ fn process_tex(
             } else {
                 let data = images[image_idx].clone();
 
-                let create_desc = match data.format {
-                    gltf::image::Format::R8G8B8 => {
-                        let dynamic_image = DynamicImage::ImageRgb8(
-                            image::RgbImage::from_raw(data.width, data.height, data.pixels)
-                                .unwrap(),
-                        );
-                        let image = dynamic_image.to_rgba8();
+                // let image = match data.format {
+                //     gltf::image::Format::R8G8B8 => {
+                //         let dynamic_image = DynamicImage::ImageRgb8(
+                //             image::RgbImage::from_raw(data.width, data.height, data.pixels)
+                //                 .unwrap(),
+                //         );
+                //         let image = dynamic_image.to_rgba8();
 
-                        TextureCreateDesc {
-                            name: Some(name),
-                            width: data.width,
-                            height: data.height,
-                            format: TextureFormat::Uncompressed(
-                                UncompressedTextureFormat::Rgba8Unorm,
-                            ),
-                            data: image.as_raw().clone(),
-                            uv_offset,
-                            uv_scale,
-                        }
-                    }
-                    gltf::image::Format::R16G16B16 => {
-                        let mut u8_pixels = vec![];
-                        for y in 0..data.width {
-                            for x in 0..data.height {
-                                for c in 0..3 {
-                                    let i = ((y * data.width + x) * 3 + c) as usize;
-                                    let u16_value = u16::from_le_bytes([
-                                        data.pixels[i * 2],
-                                        data.pixels[i * 2 + 1],
-                                    ]);
-                                    u8_pixels.push((u16_value / 257) as u8);
-                                }
-                            }
-                        }
+                //         // TextureCreateDesc {
+                //         //     name: Some(name),
+                //         //     width: data.width,
+                //         //     height: data.height,
+                //         //     mips: opt.generate_mips,
+                //         //     format: TextureFormat::Uncompressed(
+                //         //         UncompressedTextureFormat::Rgba8Unorm,
+                //         //     ),
+                //         //     data: image.as_raw().clone(),
+                //         //     uv_offset,
+                //         //     uv_scale,
+                //         // }
 
-                        let dynamic_image = DynamicImage::ImageRgb8(
-                            image::RgbImage::from_raw(data.width, data.height, u8_pixels).unwrap(),
-                        );
-                        let image = dynamic_image.to_rgba8();
+                //         DynamicImage::ImageRgba8(image)
+                //     }
+                //     gltf::image::Format::R16G16B16 => {
+                //         let mut u8_pixels = vec![];
+                //         for y in 0..data.width {
+                //             for x in 0..data.height {
+                //                 for c in 0..3 {
+                //                     let i = ((y * data.width + x) * 3 + c) as usize;
+                //                     let u16_value = u16::from_le_bytes([
+                //                         data.pixels[i * 2],
+                //                         data.pixels[i * 2 + 1],
+                //                     ]);
+                //                     u8_pixels.push((u16_value / 257) as u8);
+                //                 }
+                //             }
+                //         }
 
-                        TextureCreateDesc {
-                            name: Some(name),
-                            width: data.width,
-                            height: data.height,
-                            format: TextureFormat::Uncompressed(
-                                UncompressedTextureFormat::Rgba8Unorm,
-                            ),
-                            data: image.as_raw().clone(),
-                            uv_offset,
-                            uv_scale,
-                        }
-                    }
-                    gltf::image::Format::R16G16B16A16 => {
-                        let mut u8_pixels = vec![];
-                        for y in 0..data.width {
-                            for x in 0..data.height {
-                                for c in 0..4 {
-                                    let i = ((y * data.width + x) * 4 + c) as usize;
-                                    let u16_value = u16::from_le_bytes([
-                                        data.pixels[i * 2],
-                                        data.pixels[i * 2 + 1],
-                                    ]);
-                                    u8_pixels.push((u16_value / 257) as u8);
-                                }
-                            }
-                        }
+                //         let dynamic_image = DynamicImage::ImageRgb8(
+                //             image::RgbImage::from_raw(data.width, data.height, u8_pixels).unwrap(),
+                //         );
+                //         let image = dynamic_image.to_rgba8();
 
-                        let dynamic_image = DynamicImage::ImageRgba8(
-                            image::RgbaImage::from_raw(data.width, data.height, u8_pixels).unwrap(),
-                        );
-                        let image = dynamic_image.to_rgba8();
+                //         DynamicImage::ImageRgba8(image)
 
-                        TextureCreateDesc {
-                            name: Some(name),
-                            width: data.width,
-                            height: data.height,
-                            format: TextureFormat::Uncompressed(
-                                UncompressedTextureFormat::Rgba8Unorm,
-                            ),
-                            data: image.as_raw().clone(),
-                            uv_offset,
-                            uv_scale,
-                        }
-                    }
-                    _ => {
-                        let format = match data.format {
-                            gltf::image::Format::R8G8B8A8 => {
-                                TextureFormat::Uncompressed(UncompressedTextureFormat::Rgba8Unorm)
-                            }
-                            gltf::image::Format::R8G8 => {
-                                TextureFormat::Uncompressed(UncompressedTextureFormat::Rg8Unorm)
-                            }
-                            gltf::image::Format::R8 => {
-                                TextureFormat::Uncompressed(UncompressedTextureFormat::R8Unorm)
-                            }
-                            _ => panic!("Unsupported image type: {:?}.", data.format),
-                        };
+                //         // TextureCreateDesc {
+                //         //     name: Some(name),
+                //         //     width: data.width,
+                //         //     height: data.height,
+                //         //     mips: opt.generate_mips,
+                //         //     format: TextureFormat::Uncompressed(
+                //         //         UncompressedTextureFormat::Rgba8Unorm,
+                //         //     ),
+                //         //     data: image.as_raw().clone(),
+                //         //     uv_offset,
+                //         //     uv_scale,
+                //         // }
+                //     }
+                //     gltf::image::Format::R16G16B16A16 => {
+                //         let mut u8_pixels = vec![];
+                //         for y in 0..data.width {
+                //             for x in 0..data.height {
+                //                 for c in 0..4 {
+                //                     let i = ((y * data.width + x) * 4 + c) as usize;
+                //                     let u16_value = u16::from_le_bytes([
+                //                         data.pixels[i * 2],
+                //                         data.pixels[i * 2 + 1],
+                //                     ]);
+                //                     u8_pixels.push((u16_value / 257) as u8);
+                //                 }
+                //             }
+                //         }
 
-                        TextureCreateDesc {
-                            name: Some(name),
-                            width: data.width,
-                            height: data.height,
-                            format,
-                            data: data.pixels,
-                            uv_offset,
-                            uv_scale,
-                        }
-                    }
+                //         let dynamic_image = DynamicImage::ImageRgba8(
+                //             image::RgbaImage::from_raw(data.width, data.height, u8_pixels).unwrap(),
+                //         );
+                //         let image = dynamic_image.to_rgba8(); // TODO:????
+
+                //         DynamicImage::ImageRgba8(image)
+
+                //         // TextureCreateDesc {
+                //         //     name: Some(name),
+                //         //     width: data.width,
+                //         //     height: data.height,
+                //         //     mips: opt.generate_mips,
+                //         //     format: TextureFormat::Uncompressed(
+                //         //         UncompressedTextureFormat::Rgba8Unorm,
+                //         //     ),
+                //         //     data: image.as_raw().clone(),
+                //         //     uv_offset,
+                //         //     uv_scale,
+                //         // }
+                //     }
+                //     _ => {
+                //         // let format = match data.format {
+                //         //     gltf::image::Format::R8G8B8A8 => {
+                //         //         TextureFormat::Uncompressed(UncompressedTextureFormat::Rgba8Unorm)
+                //         //     }
+                //         //     gltf::image::Format::R8G8 => {
+                //         //         TextureFormat::Uncompressed(UncompressedTextureFormat::Rg8Unorm)
+                //         //     }
+                //         //     gltf::image::Format::R8 => {
+                //         //         TextureFormat::Uncompressed(UncompressedTextureFormat::R8Unorm)
+                //         //     }
+                //         //     _ => panic!("Unsupported image type: {:?}.", data.format),
+                //         // };
+
+                //         // TextureCreateDesc {
+                //         //     name: Some(name),
+                //         //     width: data.width,
+                //         //     height: data.height,
+                //         //     mips: opt.generate_mips,
+                //         //     format,
+                //         //     data: data.pixels,
+                //         //     uv_offset,
+                //         //     uv_scale,
+                //         // }
+
+                //         match data.format {
+                //             gltf::image::Format::R16G16B16A16 => DynamicImage::ImageRgba16(
+                //                 image::ImageBuffer::from_vec(
+                //                     data.width,
+                //                     data.height,
+                //                     bytemuck::cast_slice(&data.pixels).to_vec(),
+                //                 )
+                //                 .unwrap(),
+                //             ),
+                //             gltf::image::Format::R16G16B16 => DynamicImage::ImageRgb16(
+                //                 image::ImageBuffer::from_vec(
+                //                     data.width,
+                //                     data.height,
+                //                     bytemuck::cast_slice(&data.pixels).to_vec(),
+                //                 )
+                //                 .unwrap(),
+                //             ),
+                //             gltf::image::Format::R16G16 => DynamicImage::ImageLuma16(
+                //                 image::ImageBuffer::from_vec(
+                //                     data.width,
+                //                     data.height,
+                //                     bytemuck::cast_slice(&data.pixels).to_vec(),
+                //                 )
+                //                 .unwrap(),
+                //             ),
+                //             gltf::image::Format::R16 => DynamicImage::ImageLumaA16(
+                //                 image::ImageBuffer::from_vec(
+                //                     data.width,
+                //                     data.height,
+                //                     bytemuck::cast_slice(&data.pixels).to_vec(),
+                //                 )
+                //                 .unwrap(),
+                //             ),
+                //             gltf::image::Format::R8G8B8A8 => DynamicImage::ImageRgba8(
+                //                 image::RgbaImage::from_raw(data.width, data.height, data.pixels)
+                //                     .unwrap(),
+                //             ),
+                //             gltf::image::Format::R8G8B8 => DynamicImage::ImageRgb8(
+                //                 image::RgbImage::from_raw(data.width, data.height, data.pixels)
+                //                     .unwrap(),
+                //             ),
+                //             gltf::image::Format::R8G8 => DynamicImage::ImageLumaA8(
+                //                 image::GrayAlphaImage::from_raw(
+                //                     data.width,
+                //                     data.height,
+                //                     data.pixels,
+                //                 )
+                //                 .unwrap(),
+                //             ),
+                //             gltf::image::Format::R8 => DynamicImage::ImageLuma8(
+                //                 image::GrayImage::from_raw(data.width, data.height, data.pixels)
+                //                     .unwrap(),
+                //             ),
+                //             _ => panic!("Unsupported image type: {:?}.", data.format),
+                //         }
+                //     }
+                // };
+
+                let image = match data.format {
+                    gltf::image::Format::R16G16B16A16 => DynamicImage::ImageRgba16(
+                        image::ImageBuffer::from_vec(
+                            data.width,
+                            data.height,
+                            bytemuck::cast_slice(&data.pixels).to_vec(),
+                        )
+                        .unwrap(),
+                    ),
+                    gltf::image::Format::R16G16B16 => DynamicImage::ImageRgb16(
+                        image::ImageBuffer::from_vec(
+                            data.width,
+                            data.height,
+                            bytemuck::cast_slice(&data.pixels).to_vec(),
+                        )
+                        .unwrap(),
+                    ),
+                    gltf::image::Format::R16G16 => DynamicImage::ImageLuma16(
+                        image::ImageBuffer::from_vec(
+                            data.width,
+                            data.height,
+                            bytemuck::cast_slice(&data.pixels).to_vec(),
+                        )
+                        .unwrap(),
+                    ),
+                    gltf::image::Format::R16 => DynamicImage::ImageLumaA16(
+                        image::ImageBuffer::from_vec(
+                            data.width,
+                            data.height,
+                            bytemuck::cast_slice(&data.pixels).to_vec(),
+                        )
+                        .unwrap(),
+                    ),
+                    gltf::image::Format::R8G8B8A8 => DynamicImage::ImageRgba8(
+                        image::RgbaImage::from_raw(data.width, data.height, data.pixels).unwrap(),
+                    ),
+                    gltf::image::Format::R8G8B8 => DynamicImage::ImageRgb8(
+                        image::RgbImage::from_raw(data.width, data.height, data.pixels).unwrap(),
+                    ),
+                    gltf::image::Format::R8G8 => DynamicImage::ImageLumaA8(
+                        image::GrayAlphaImage::from_raw(data.width, data.height, data.pixels)
+                            .unwrap(),
+                    ),
+                    gltf::image::Format::R8 => DynamicImage::ImageLuma8(
+                        image::GrayImage::from_raw(data.width, data.height, data.pixels).unwrap(),
+                    ),
+                    _ => panic!("Unsupported image type: {:?}.", data.format),
                 };
 
-                let mut texture = Texture::new(create_desc);
+                let mut texture = Texture::new(TextureCreateDesc {
+                    name: Some(name),
+                    image,
+                    mips: opt.generate_mips,
+                    uv_offset,
+                    uv_scale,
+                });
+
                 if let Some(texture_compression) = &opt.texture_compression {
                     if let Some(compressed_texture) = texture.compress(texture_compression) {
                         texture = compressed_texture;

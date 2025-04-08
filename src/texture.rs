@@ -1,4 +1,5 @@
 use half::f16;
+use image::DynamicImage;
 use speedy::{Readable, Writable};
 use uuid::Uuid;
 
@@ -28,6 +29,23 @@ pub enum CompressedTextureFormat {
     Bc5RgUnorm,
     Bc7RgbaUnorm,
     Bc6hRgbUfloat,
+}
+
+impl TextureFormat {
+    pub fn bytes_per_row(&self, width: u32) -> usize {
+        match self {
+            Self::Uncompressed(format) => format.bytes_per_row(width),
+            Self::Compressed(format) => format.bytes_per_row(width),
+        }
+    }
+
+    #[cfg(feature = "wgpu")]
+    pub fn to_wgpu(&self) -> wgpu::TextureFormat {
+        match self {
+            Self::Uncompressed(format) => format.to_wgpu(),
+            Self::Compressed(format) => format.to_wgpu(),
+        }
+    }
 }
 
 impl UncompressedTextureFormat {
@@ -102,10 +120,8 @@ impl CompressedTextureFormat {
 
 pub struct TextureCreateDesc<'a> {
     pub name: Option<&'a str>,
-    pub width: u32,
-    pub height: u32,
-    pub format: TextureFormat,
-    pub data: Vec<u8>,
+    pub image: image::DynamicImage,
+    pub mips: bool,
     pub uv_offset: [f32; 2],
     pub uv_scale: [f32; 2],
 }
@@ -116,21 +132,82 @@ pub struct Texture {
     uuid: Uuid,
     width: u32,
     height: u32,
+    mip_count: u32,
     format: TextureFormat,
-    data: Vec<u8>,
+    data: Vec<Vec<u8>>,
     uv_offset: [f32; 2],
     uv_scale: [f32; 2],
 }
 
 impl Texture {
     pub fn new(desc: TextureCreateDesc) -> Self {
+        let mut mipmaps = vec![desc.image];
+        while mipmaps.last().unwrap().width() > 1 && mipmaps.last().unwrap().height() > 1 {
+            let next_width = (mipmaps.last().unwrap().width() / 2).max(1);
+            let next_height = (mipmaps.last().unwrap().height() / 2).max(1);
+
+            let next = mipmaps.last().unwrap().resize_exact(
+                next_width,
+                next_height,
+                image::imageops::FilterType::CatmullRom,
+            );
+
+            mipmaps.push(next);
+        }
+
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..mipmaps.len() {
+            let converted_mip = match mipmaps[i] {
+                DynamicImage::ImageRgba16(_) => {
+                    Some(DynamicImage::ImageRgba8(mipmaps[i].to_rgba8()))
+                }
+                DynamicImage::ImageRgb16(_) => {
+                    Some(DynamicImage::ImageRgba8(mipmaps[i].to_rgba8()))
+                }
+                DynamicImage::ImageLumaA16(_) => {
+                    Some(DynamicImage::ImageLumaA8(mipmaps[i].to_luma_alpha8()))
+                }
+                DynamicImage::ImageLuma16(_) => {
+                    Some(DynamicImage::ImageLuma8(mipmaps[i].to_luma8()))
+                }
+                DynamicImage::ImageRgb8(_) => Some(DynamicImage::ImageRgba8(mipmaps[i].to_rgba8())),
+                _ => None,
+            };
+
+            if let Some(converted_mip) = converted_mip {
+                mipmaps[i] = converted_mip;
+            }
+        }
+
+        let format = match &mipmaps[0] {
+            DynamicImage::ImageRgba32F(_) => {
+                TextureFormat::Uncompressed(UncompressedTextureFormat::Rgba32Float)
+            }
+            DynamicImage::ImageRgba8(_) => {
+                TextureFormat::Uncompressed(UncompressedTextureFormat::Rgba8Unorm)
+            }
+            DynamicImage::ImageLumaA8(_) => {
+                TextureFormat::Uncompressed(UncompressedTextureFormat::Rg8Unorm)
+            }
+            DynamicImage::ImageLuma8(_) => {
+                TextureFormat::Uncompressed(UncompressedTextureFormat::R8Unorm)
+            }
+            _ => panic!(),
+        };
+
+        let mut data = Vec::new();
+        for mip in &mipmaps {
+            data.push(mip.as_bytes().to_vec());
+        }
+
         Self {
             name: desc.name.unwrap_or("Unnamed").to_owned(),
             uuid: Uuid::new_v4(),
-            width: desc.width,
-            height: desc.height,
-            format: desc.format,
-            data: desc.data,
+            width: mipmaps[0].width(),
+            height: mipmaps[0].height(),
+            mip_count: mipmaps.len() as u32,
+            format,
+            data,
             uv_offset: desc.uv_offset,
             uv_scale: desc.uv_scale,
         }
@@ -156,7 +233,7 @@ impl Texture {
         self.format
     }
 
-    pub fn data(&self) -> &[u8] {
+    pub fn data(&self) -> &[Vec<u8>] {
         &self.data
     }
 
@@ -182,7 +259,7 @@ impl Texture {
                                 * (uncompressed_format.num_channels()
                                     * uncompressed_format.bytes_per_channel())
                                     as u32,
-                            data: &self.data,
+                            data: &self.data[0],
                         };
 
                         intel_tex_2::bc4::compress_blocks(&surface)
@@ -195,13 +272,13 @@ impl Texture {
                                 * (uncompressed_format.num_channels()
                                     * uncompressed_format.bytes_per_channel())
                                     as u32,
-                            data: &self.data,
+                            data: &self.data[0],
                         };
 
                         intel_tex_2::bc5::compress_blocks(&surface)
                     }
                     CompressedTextureFormat::Bc6hRgbUfloat => {
-                        let f32_data = bytemuck::cast_slice(&self.data);
+                        let f32_data = bytemuck::cast_slice(&self.data[0]);
                         let f16_data: Vec<f16> =
                             f32_data.iter().copied().map(f16::from_f32).collect();
 
@@ -228,7 +305,7 @@ impl Texture {
                                 * (uncompressed_format.num_channels()
                                     * uncompressed_format.bytes_per_channel())
                                     as u32,
-                            data: &self.data,
+                            data: &self.data[0],
                         };
 
                         intel_tex_2::bc7::compress_blocks(
@@ -243,8 +320,9 @@ impl Texture {
                     uuid: Uuid::new_v4(),
                     width: self.width,
                     height: self.height,
+                    mip_count: self.mip_count,
                     format: TextureFormat::Compressed(*compressed_format),
-                    data,
+                    data: vec![data],
                     uv_offset: self.uv_offset,
                     uv_scale: self.uv_scale,
                 });
@@ -262,15 +340,7 @@ impl Texture {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> (wgpu::Texture, wgpu::TextureView) {
-        let (mut format, bytes_per_row) = match &self.format {
-            TextureFormat::Compressed(format) => {
-                (format.to_wgpu(), format.bytes_per_row(self.width))
-            }
-            TextureFormat::Uncompressed(format) => {
-                (format.to_wgpu(), format.bytes_per_row(self.width))
-            }
-        };
-
+        let mut format = self.format.to_wgpu();
         if srgb {
             format = format.add_srgb_suffix();
         }
@@ -281,7 +351,7 @@ impl Texture {
                 height: self.height,
                 depth_or_array_layers: 1,
             },
-            mip_level_count: 1,
+            mip_level_count: self.mip_count,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
@@ -294,25 +364,34 @@ impl Texture {
             ..Default::default()
         });
 
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &texture,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            &self.data,
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(bytes_per_row as u32),
-                rows_per_image: None,
-            },
-            wgpu::Extent3d {
-                width: self.width,
-                height: self.height,
-                depth_or_array_layers: 1,
-            },
-        );
+        let mut mip_width = self.width;
+        let mut mip_height = self.height;
+        for i in 0..self.mip_count {
+            let bytes_per_row = self.format.bytes_per_row(mip_width);
+
+            queue.write_texture(
+                wgpu::TexelCopyTextureInfo {
+                    texture: &texture,
+                    mip_level: i,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                },
+                &self.data[i as usize],
+                wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(bytes_per_row as u32),
+                    rows_per_image: None,
+                },
+                wgpu::Extent3d {
+                    width: mip_width,
+                    height: mip_height,
+                    depth_or_array_layers: 1,
+                },
+            );
+
+            mip_width = (mip_width / 2).max(1);
+            mip_height = (mip_height / 2).max(1);
+        }
 
         (texture, texture_view)
     }
