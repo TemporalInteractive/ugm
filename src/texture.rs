@@ -1,3 +1,4 @@
+use glam::Vec3;
 use half::f16;
 use image::DynamicImage;
 use speedy::{Readable, Writable};
@@ -122,6 +123,7 @@ pub struct TextureCreateDesc<'a> {
     pub name: Option<&'a str>,
     pub image: image::DynamicImage,
     pub mips: bool,
+    pub is_normal_map: bool,
     pub uv_offset: [f32; 2],
     pub uv_scale: [f32; 2],
 }
@@ -141,42 +143,63 @@ pub struct Texture {
 
 impl Texture {
     pub fn new(desc: TextureCreateDesc) -> Self {
-        let mut mipmaps = vec![desc.image];
+        let converted_image = match desc.image {
+            DynamicImage::ImageRgba16(_) => DynamicImage::ImageRgba8(desc.image.to_rgba8()),
+            DynamicImage::ImageRgb16(_) => DynamicImage::ImageRgba8(desc.image.to_rgba8()),
+            DynamicImage::ImageLumaA16(_) => DynamicImage::ImageLumaA8(desc.image.to_luma_alpha8()),
+            DynamicImage::ImageLuma16(_) => DynamicImage::ImageLuma8(desc.image.to_luma8()),
+            DynamicImage::ImageRgb8(_) => DynamicImage::ImageRgba8(desc.image.to_rgba8()),
+            _ => desc.image,
+        };
+
+        let mut mipmaps = vec![converted_image];
         while mipmaps.last().unwrap().width() > 1 && mipmaps.last().unwrap().height() > 1 {
             let next_width = (mipmaps.last().unwrap().width() / 2).max(1);
             let next_height = (mipmaps.last().unwrap().height() / 2).max(1);
 
-            let next = mipmaps.last().unwrap().resize_exact(
-                next_width,
-                next_height,
-                image::imageops::FilterType::CatmullRom,
-            );
+            let next = if !desc.is_normal_map {
+                mipmaps.last().unwrap().resize_exact(
+                    next_width,
+                    next_height,
+                    image::imageops::FilterType::CatmullRom,
+                )
+            } else if let DynamicImage::ImageRgba8(img) = mipmaps.last().unwrap() {
+                let mut next_data = vec![0; (next_width * next_height * 4) as usize];
 
-            mipmaps.push(next);
-        }
+                for y in 0..next_height {
+                    for x in 0..next_width {
+                        let mut avg_normal = Vec3::ZERO;
+                        for dy in 0..2 {
+                            for dx in 0..2 {
+                                let pixel = img.get_pixel(
+                                    (2 * x + dx).min(img.width() - 1),
+                                    (2 * y + dy).min(img.height() - 1),
+                                );
+                                let x = (pixel[0] as f32 / 255.0) * 2.0 - 1.0;
+                                let y = (pixel[1] as f32 / 255.0) * 2.0 - 1.0;
+                                let z = (pixel[2] as f32 / 255.0) * 2.0 - 1.0;
+                                avg_normal += Vec3::new(x, y, z).normalize();
+                            }
+                        }
 
-        #[allow(clippy::needless_range_loop)]
-        for i in 0..mipmaps.len() {
-            let converted_mip = match mipmaps[i] {
-                DynamicImage::ImageRgba16(_) => {
-                    Some(DynamicImage::ImageRgba8(mipmaps[i].to_rgba8()))
+                        avg_normal = (avg_normal / 4.0).clamp(Vec3::splat(-1.0), Vec3::splat(1.0));
+                        avg_normal = avg_normal * 0.5 + 0.5;
+
+                        let i = (y * next_width + x) as usize;
+                        next_data[i * 4] = (avg_normal.x * 255.0) as u8;
+                        next_data[i * 4 + 1] = (avg_normal.y * 255.0) as u8;
+                        next_data[i * 4 + 2] = (avg_normal.z * 255.0) as u8;
+                    }
                 }
-                DynamicImage::ImageRgb16(_) => {
-                    Some(DynamicImage::ImageRgba8(mipmaps[i].to_rgba8()))
-                }
-                DynamicImage::ImageLumaA16(_) => {
-                    Some(DynamicImage::ImageLumaA8(mipmaps[i].to_luma_alpha8()))
-                }
-                DynamicImage::ImageLuma16(_) => {
-                    Some(DynamicImage::ImageLuma8(mipmaps[i].to_luma8()))
-                }
-                DynamicImage::ImageRgb8(_) => Some(DynamicImage::ImageRgba8(mipmaps[i].to_rgba8())),
-                _ => None,
+
+                DynamicImage::ImageRgba8(
+                    image::RgbaImage::from_raw(next_width, next_height, next_data).unwrap(),
+                )
+            } else {
+                panic!("Normal maps must contain at least 3 channels.");
             };
 
-            if let Some(converted_mip) = converted_mip {
-                mipmaps[i] = converted_mip;
-            }
+            mipmaps.push(next);
         }
 
         let format = match &mipmaps[0] {
