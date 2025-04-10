@@ -65,6 +65,23 @@ mod tests {
     }
 
     #[test]
+    fn bc_compressed_mips() {
+        let model_bytes = include_bytes!("ToyCar.glb");
+        let model = Model::parse_glb(
+            model_bytes,
+            ParseOptions {
+                texture_compression: Some(TextureCompression::Bc),
+                generate_mips: true,
+            },
+        )
+        .unwrap();
+
+        let serialized = model.write_to_vec().unwrap();
+        let compression_rate = serialized.len() as f32 / model_bytes.len() as f32;
+        println!("Compression rate: {}", compression_rate);
+    }
+
+    #[test]
     fn parse_vs_deserialize() {
         let model_bytes = include_bytes!("ToyCar.glb");
 
