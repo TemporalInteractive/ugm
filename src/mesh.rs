@@ -52,6 +52,31 @@ impl Mesh {
             bounds_max: bounds_max.to_array(),
         }
     }
+
+    #[cfg(feature = "rapier3d")]
+    pub fn build_rapier3d_trimesh(&self) -> rapier3d::prelude::SharedShape {
+        use rapier3d::prelude::*;
+
+        let vertices: Vec<Point<Real>> = self
+            .packed_vertices
+            .iter()
+            .map(|packed_vertex| {
+                nalgebra::Point3::new(
+                    packed_vertex.position[0],
+                    packed_vertex.position[1],
+                    packed_vertex.position[2],
+                )
+            })
+            .collect();
+
+        let indices: Vec<[u32; 3]> = self
+            .indices
+            .chunks(3)
+            .map(|chunk| [chunk[0], chunk[1], chunk[2]])
+            .collect();
+
+        SharedShape::trimesh(vertices, indices).expect("Failed to build rapier3d trimesh.")
+    }
 }
 
 pub fn pack_vertices(
