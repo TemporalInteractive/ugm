@@ -21,6 +21,8 @@ pub struct Mesh {
     pub indices: Vec<u32>,
     pub opaque: bool,
     pub is_emissive: bool,
+    pub bounds_min: [f32; 3],
+    pub bounds_max: [f32; 3],
 }
 
 impl Mesh {
@@ -33,12 +35,21 @@ impl Mesh {
     ) -> Self {
         debug_assert_eq!(triangle_material_indices.len(), indices.len() / 3);
 
+        let mut bounds_min = Vec3::INFINITY;
+        let mut bounds_max = Vec3::NEG_INFINITY;
+        for vertex in &packed_vertices {
+            bounds_min = bounds_min.min(Vec3::from_array(vertex.position));
+            bounds_max = bounds_max.max(Vec3::from_array(vertex.position));
+        }
+
         Mesh {
             packed_vertices,
             triangle_material_indices,
             indices,
             opaque,
             is_emissive,
+            bounds_min: bounds_min.to_array(),
+            bounds_max: bounds_max.to_array(),
         }
     }
 }
