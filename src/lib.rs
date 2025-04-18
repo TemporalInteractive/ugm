@@ -1,4 +1,3 @@
-use anyhow::Result;
 use glam::Mat4;
 use material::Material;
 use mesh::Mesh;
@@ -26,6 +25,8 @@ pub struct ModelNode {
 pub struct Model {
     pub root_node_indices: Vec<u32>,
     pub nodes: Vec<ModelNode>,
+    pub bounds_min: [f32; 3],
+    pub bounds_max: [f32; 3],
 
     pub meshes: Vec<Mesh>,
     pub materials: Vec<Material>,
@@ -34,7 +35,7 @@ pub struct Model {
 
 impl Model {
     #[cfg(feature = "gltf")]
-    pub fn parse_glb(data: &[u8], opt: parser::ParseOptions) -> Result<Self> {
+    pub fn parse_glb(data: &[u8], opt: parser::ParseOptions) -> anyhow::Result<Self> {
         parser::gltf::parse_glb(data, opt)
     }
 
