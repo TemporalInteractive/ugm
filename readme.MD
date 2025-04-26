@@ -9,7 +9,7 @@ Universal game model is a minimal crate designed as a high performance model for
 - [x] Bc texture compression
 - [x] Normal & tangent generation
 - [x] Vertex packing
-- [ ] Mipmap generation
+- [X] Mipmap generation
 - [ ] Astc texture compression
 
 ## Usage
