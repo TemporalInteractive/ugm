@@ -54,7 +54,7 @@ impl Mesh {
     }
 
     #[cfg(feature = "rapier3d")]
-    pub fn build_rapier3d_trimesh(&self) -> rapier3d::prelude::SharedShape {
+    pub fn build_rapier3d_trimesh(&self, scale: Vec3) -> rapier3d::prelude::SharedShape {
         use rapier3d::prelude::*;
 
         let vertices: Vec<Point<Real>> = self
@@ -62,9 +62,9 @@ impl Mesh {
             .iter()
             .map(|packed_vertex| {
                 nalgebra::Point3::new(
-                    packed_vertex.position[0],
-                    packed_vertex.position[1],
-                    packed_vertex.position[2],
+                    packed_vertex.position[0] * scale.x,
+                    packed_vertex.position[1] * scale.y,
+                    packed_vertex.position[2] * scale.z,
                 )
             })
             .collect();
