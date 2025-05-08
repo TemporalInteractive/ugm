@@ -140,6 +140,7 @@ fn process_node(
             let mut mesh_vertex_normals = vec![];
             let mut mesh_vertex_tangents = vec![];
             let mut mesh_triangle_material_indices = vec![];
+            let mut mesh_material_indices = vec![];
             let mut mesh_indices = vec![];
             let mut opaque = true;
             let mut is_emissive = false;
@@ -206,8 +207,18 @@ fn process_node(
                     let pbr = prim_material.pbr_metallic_roughness();
                     let material_idx = primitive.material().index().unwrap_or(0);
 
+                    let local_material_idx = if let Some(index) = mesh_material_indices
+                        .iter()
+                        .position(|&x| x == material_idx as u32)
+                    {
+                        index as u32
+                    } else {
+                        mesh_material_indices.push(material_idx as u32);
+                        mesh_material_indices.len() as u32 - 1
+                    };
+
                     mesh_triangle_material_indices
-                        .append(&mut vec![material_idx as u32; num_triangles]);
+                        .append(&mut vec![local_material_idx; num_triangles]);
 
                     let material = &mut materials[material_idx];
                     if material.index.is_none() {
@@ -390,6 +401,7 @@ fn process_node(
             let mesh = Mesh::new(
                 packed_vertices,
                 mesh_triangle_material_indices,
+                mesh_material_indices,
                 mesh_indices,
                 opaque,
                 is_emissive,

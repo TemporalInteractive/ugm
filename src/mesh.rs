@@ -18,6 +18,7 @@ pub struct PackedVertex {
 pub struct Mesh {
     pub packed_vertices: Vec<PackedVertex>,
     pub triangle_material_indices: Vec<u32>,
+    pub material_indices: Vec<u32>,
     pub indices: Vec<u32>,
     pub opaque: bool,
     pub is_emissive: bool,
@@ -29,6 +30,7 @@ impl Mesh {
     pub fn new(
         packed_vertices: Vec<PackedVertex>,
         triangle_material_indices: Vec<u32>,
+        material_indices: Vec<u32>,
         indices: Vec<u32>,
         opaque: bool,
         is_emissive: bool,
@@ -45,6 +47,7 @@ impl Mesh {
         Mesh {
             packed_vertices,
             triangle_material_indices,
+            material_indices,
             indices,
             opaque,
             is_emissive,
