@@ -23,7 +23,7 @@ intel_tex_2 = { version = "0.4.0", default-features = false }
 rapier3d = { version = "0.24.0", default-features = false, features = ["dim3", "f32", "simd-stable"], optional = true }
 speedy = { version = "0.8.7", features = ["uuid"] }
 uuid = { version = "1.12.1", default-features = false, features = ["std", "v4"]}
-wgpu = { version = "24.0.3", optional = true }
+wgpu = { version = "25.0.0", optional = true }
 
 [features]
 default = ["gltf", "rapier3d", "wgpu"]
