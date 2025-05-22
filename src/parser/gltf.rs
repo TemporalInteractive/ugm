@@ -46,7 +46,7 @@ pub(crate) fn parse_glb(data: &[u8], opt: ParseOptions) -> Result<Model> {
         }
     }
 
-    let meshes: Vec<Mesh> = meshes.into_iter().map(|mesh| mesh.unwrap()).collect();
+    let meshes: Vec<Mesh> = meshes.into_iter().flatten().collect();
 
     let mut bounds_min = Vec3::INFINITY;
     let mut bounds_max = Vec3::NEG_INFINITY;
