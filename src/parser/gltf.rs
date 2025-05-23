@@ -498,7 +498,7 @@ fn process_tex(
             } else {
                 let data = images[image_idx].clone();
 
-                let image = match data.format {
+                let mut image = match data.format {
                     gltf::image::Format::R16G16B16A16 => DynamicImage::ImageRgba16(
                         image::ImageBuffer::from_vec(
                             data.width,
@@ -546,6 +546,27 @@ fn process_tex(
                     ),
                     _ => panic!("Unsupported image type: {:?}.", data.format),
                 };
+
+                if let Some(max_texture_resolution) = &opt.max_texture_resolution {
+                    let max_texture_resolution = max_texture_resolution.resolution();
+
+                    if max_texture_resolution < image.width()
+                        || max_texture_resolution < image.height()
+                    {
+                        let scale_x = max_texture_resolution as f32 / image.width() as f32;
+                        let scale_y = max_texture_resolution as f32 / image.height() as f32;
+                        let min_scale = scale_x.min(scale_y);
+
+                        let resized_width = (image.width() as f32 * min_scale) as u32;
+                        let resized_height = (image.height() as f32 * min_scale) as u32;
+
+                        image = image.resize_exact(
+                            resized_width,
+                            resized_height,
+                            image::imageops::FilterType::CatmullRom,
+                        );
+                    }
+                }
 
                 let mut texture = Texture::new(TextureCreateDesc {
                     name: Some(name),

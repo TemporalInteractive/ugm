@@ -3,7 +3,11 @@ mod tests {
     use std::hint::black_box;
 
     use speedy::{Readable, Writable};
-    use ugm::{parser::ParseOptions, texture::TextureCompression, Model};
+    use ugm::{
+        parser::{MaxTextureResolution, ParseOptions},
+        texture::TextureCompression,
+        Model,
+    };
 
     #[test]
     fn parse_gltf() {
@@ -38,9 +42,12 @@ mod tests {
             ParseOptions {
                 texture_compression: Some(TextureCompression::Bc),
                 generate_mips: false,
+                max_texture_resolution: Some(MaxTextureResolution::Res1024),
             },
         )
         .unwrap();
+
+        println!("{}", model.textures[0].width());
 
         let serialized = model.write_to_vec().unwrap();
         let compression_rate = serialized.len() as f32 / model_bytes.len() as f32;
@@ -55,6 +62,7 @@ mod tests {
             ParseOptions {
                 texture_compression: None,
                 generate_mips: true,
+                ..Default::default()
             },
         )
         .unwrap();
@@ -72,6 +80,7 @@ mod tests {
             ParseOptions {
                 texture_compression: Some(TextureCompression::Bc),
                 generate_mips: true,
+                ..Default::default()
             },
         )
         .unwrap();
