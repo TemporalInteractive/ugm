@@ -46,7 +46,16 @@ pub(crate) fn parse_glb(data: &[u8], opt: ParseOptions) -> Result<Model> {
         }
     }
 
-    let meshes: Vec<Mesh> = meshes.into_iter().flatten().collect();
+    let meshes: Vec<Mesh> = meshes
+        .into_iter()
+        .map(|mesh| {
+            if let Some(mesh) = mesh {
+                mesh
+            } else {
+                Mesh::empty()
+            }
+        })
+        .collect();
 
     let mut bounds_min = Vec3::INFINITY;
     let mut bounds_max = Vec3::NEG_INFINITY;
@@ -133,7 +142,7 @@ fn process_node(
     let mut node_mesh = None;
 
     if let Some(mesh) = node.mesh() {
-        let mesh_idx = mesh.index();
+        let mut mesh_idx = mesh.index();
         if meshes[mesh_idx].is_none() {
             let mut mesh_vertex_positions = vec![];
             let mut mesh_vertex_tex_coords = vec![];
@@ -406,6 +415,17 @@ fn process_node(
                 opaque,
                 is_emissive,
             );
+
+            if opt.merge_duplicate_meshes {
+                for (i, other_mesh) in meshes.iter().enumerate() {
+                    if let Some(other_mesh) = other_mesh {
+                        if other_mesh.id() == mesh.id() {
+                            mesh_idx = i;
+                            break;
+                        }
+                    }
+                }
+            }
 
             meshes[mesh_idx] = Some(mesh);
         }

@@ -25,4 +25,5 @@ pub struct ParseOptions {
     pub texture_compression: Option<TextureCompression>,
     pub generate_mips: bool,
     pub max_texture_resolution: Option<MaxTextureResolution>,
+    pub merge_duplicate_meshes: bool,
 }

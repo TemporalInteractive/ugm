@@ -1,3 +1,5 @@
+use std::hash::{DefaultHasher, Hash, Hasher};
+
 use bytemuck::{Pod, Zeroable};
 use glam::{Vec2, Vec3, Vec3Swizzles, Vec4, Vec4Swizzles};
 use speedy::{Readable, Writable};
@@ -24,6 +26,7 @@ pub struct Mesh {
     pub is_emissive: bool,
     pub bounds_min: [f32; 3],
     pub bounds_max: [f32; 3],
+    id: u64,
 }
 
 impl Mesh {
@@ -44,6 +47,15 @@ impl Mesh {
             bounds_max = bounds_max.max(Vec3::from_array(vertex.position));
         }
 
+        let mut hasher = DefaultHasher::new();
+        for vert in &packed_vertices {
+            for component in vert.position {
+                let quantized = (component * 1000.0).round() as i32;
+                quantized.hash(&mut hasher);
+            }
+        }
+        let id = hasher.finish();
+
         Mesh {
             packed_vertices,
             triangle_material_indices,
@@ -53,7 +65,30 @@ impl Mesh {
             is_emissive,
             bounds_min: bounds_min.to_array(),
             bounds_max: bounds_max.to_array(),
+            id,
         }
+    }
+
+    pub fn empty() -> Self {
+        Mesh {
+            packed_vertices: Vec::new(),
+            triangle_material_indices: Vec::new(),
+            material_indices: Vec::new(),
+            indices: Vec::new(),
+            opaque: true,
+            is_emissive: false,
+            bounds_min: [0.0; 3],
+            bounds_max: [0.0; 3],
+            id: 0,
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.packed_vertices.is_empty()
+    }
+
+    pub fn id(&self) -> u64 {
+        self.id
     }
 
     #[cfg(feature = "rapier3d")]

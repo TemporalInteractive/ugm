@@ -43,6 +43,7 @@ mod tests {
                 texture_compression: Some(TextureCompression::Bc),
                 generate_mips: false,
                 max_texture_resolution: Some(MaxTextureResolution::Res1024),
+                merge_duplicate_meshes: true,
             },
         )
         .unwrap();
