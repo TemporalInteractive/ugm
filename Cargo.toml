@@ -17,16 +17,21 @@ bytemuck = { version = "1.0.0", features = ["derive"] }
 half = { version = "2.5.0", features = ["bytemuck"] }
 glam = { version = "0.30.1", features = ["bytemuck"] }
 #gltf = { version = "1.4.1", features = ["KHR_materials_emissive_strength", "KHR_materials_ior", "KHR_materials_transmission", "KHR_materials_specular", "KHR_materials_volume", "KHR_materials_specular", "KHR_texture_transform"], optional = true }
-gltf = { git = "https://github.com/TemporalInteractive/gltf.git", rev = "6303150", features = ["KHR_materials_emissive_strength", "KHR_materials_ior", "KHR_materials_transmission", "KHR_materials_specular", "KHR_materials_volume", "KHR_materials_specular", "KHR_texture_transform", "KHR_materials_sheen", "KHR_materials_clearcoat"], optional = true }
+gltf = { git = "https://github.com/gltf-rs/gltf.git", features = ["KHR_materials_emissive_strength", "KHR_materials_ior", "KHR_materials_transmission", "KHR_materials_specular", "KHR_materials_volume", "KHR_materials_specular", "KHR_texture_transform", "KHR_materials_sheen", "KHR_materials_clearcoat"], optional = true }
 image = "0.25.6"
-intel_tex_2 = { version = "0.4.0", default-features = false }
+intel_tex_2 = { version = "0.4.0", default-features = false, optional = true }
 rapier3d = { version = "0.24.0", default-features = false, features = ["dim3", "f32", "simd-stable"], optional = true }
 speedy = { version = "0.8.7", features = ["uuid"] }
-uuid = { version = "1.12.1", default-features = false, features = ["std", "v4"]}
 wgpu = { version = "25.0.0", optional = true }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { version = "1.12.1", default-features = false, features = ["js", "v4"]}
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+uuid = { version = "1.12.1", default-features = false, features = ["std", "v4"]}
+
 [features]
-default = ["gltf", "rapier3d", "wgpu"]
+default = ["gltf", "rapier3d", "wgpu", "intel_tex_2"]
 gltf = ["dep:gltf"]
 rapier3d = ["dep:rapier3d"]
 wgpu = ["dep:wgpu"]
+intel_tex_2 = ["dep:intel_tex_2"]

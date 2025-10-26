@@ -18,6 +18,7 @@ pub struct PackedVertex {
 
 #[derive(Debug, Clone, Readable, Writable)]
 pub struct Mesh {
+    pub name: String,
     pub packed_vertices: Vec<PackedVertex>,
     pub triangle_material_indices: Vec<u32>,
     pub material_indices: Vec<u32>,
@@ -31,6 +32,7 @@ pub struct Mesh {
 
 impl Mesh {
     pub fn new(
+        name: &str,
         packed_vertices: Vec<PackedVertex>,
         triangle_material_indices: Vec<u32>,
         material_indices: Vec<u32>,
@@ -57,6 +59,7 @@ impl Mesh {
         let id = hasher.finish();
 
         Mesh {
+            name: name.to_owned(),
             packed_vertices,
             triangle_material_indices,
             material_indices,
@@ -71,6 +74,7 @@ impl Mesh {
 
     pub fn empty() -> Self {
         Mesh {
+            name: "Empty".to_owned(),
             packed_vertices: Vec::new(),
             triangle_material_indices: Vec::new(),
             material_indices: Vec::new(),

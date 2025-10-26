@@ -268,7 +268,7 @@ fn process_node(
                             material.specular = specular.specular_factor();
                             material.specular_tint = specular.specular_color_factor();
                         }
-                        // Pending PR at gltf-rs: https://github.com/gltf-rs/gltf/pull/446
+
                         if let Some(clearcoat) = prim_material.clearcoat() {
                             material.clearcoat = clearcoat.clearcoat_factor();
                             if let Some(tex) = clearcoat.clearcoat_texture() {
@@ -408,6 +408,7 @@ fn process_node(
             );
 
             let mesh = Mesh::new(
+                mesh.name().unwrap_or("Unnamed"),
                 packed_vertices,
                 mesh_triangle_material_indices,
                 mesh_material_indices,

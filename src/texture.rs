@@ -268,6 +268,7 @@ impl Texture {
         self.uv_scale
     }
 
+    #[cfg(feature = "intel_tex_2")]
     pub fn compress(&self, texture_compression: &TextureCompression) -> Option<Self> {
         if let TextureFormat::Uncompressed(uncompressed_format) = self.format() {
             if let Some(compressed_format) =
@@ -369,6 +370,11 @@ impl Texture {
         }
 
         None
+    }
+
+    #[cfg(not(feature = "intel_tex_2"))]
+    pub fn compress(&self, texture_compression: &TextureCompression) -> Option<Self> {
+        panic!("Failed to compress texture, this requires the 'intel_tex_2' crate feature.");
     }
 
     #[cfg(feature = "wgpu")]
