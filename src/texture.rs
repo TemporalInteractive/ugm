@@ -13,7 +13,7 @@ pub enum TextureFormat {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextureCompression {
     Bc,
-    Astc,
+    Etc1,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Readable, Writable)]
@@ -30,6 +30,7 @@ pub enum CompressedTextureFormat {
     Bc5RgUnorm,
     Bc7RgbaUnorm,
     Bc6hRgbUfloat,
+    Etc1,
 }
 
 impl TextureFormat {
@@ -81,7 +82,10 @@ impl UncompressedTextureFormat {
                 Self::Rgba8Unorm => Some(&CompressedTextureFormat::Bc7RgbaUnorm),
                 Self::Rgba32Float => Some(&CompressedTextureFormat::Bc6hRgbUfloat),
             },
-            TextureCompression::Astc => todo!("ASTC is not supported yet!"),
+            TextureCompression::Etc1 => match self {
+                Self::Rgba8Unorm => Some(&CompressedTextureFormat::Etc1),
+                Self::Rg8Unorm | Self::Rgba32Float | Self::R8Unorm => None,
+            },
         }
     }
 
@@ -101,6 +105,7 @@ impl CompressedTextureFormat {
         match self {
             Self::Bc4RUnorm => 8,
             Self::Bc5RgUnorm | Self::Bc7RgbaUnorm | Self::Bc6hRgbUfloat => 16,
+            Self::Etc1 => 4,
         }
     }
 
@@ -115,6 +120,7 @@ impl CompressedTextureFormat {
             Self::Bc5RgUnorm => wgpu::TextureFormat::Bc5RgUnorm,
             Self::Bc7RgbaUnorm => wgpu::TextureFormat::Bc7RgbaUnorm,
             Self::Bc6hRgbUfloat => wgpu::TextureFormat::Bc6hRgbUfloat,
+            Self::Etc1 => wgpu::TextureFormat::Etc2Rgba8Unorm,
         }
     }
 }
@@ -339,6 +345,24 @@ impl Texture {
 
                             intel_tex_2::bc7::compress_blocks(
                                 &intel_tex_2::bc7::alpha_ultra_fast_settings(),
+                                &surface,
+                            )
+                        }
+                        CompressedTextureFormat::Etc1 => {
+                            let surface = intel_tex_2::RgbaSurface {
+                                width: mip_width,
+                                height: mip_height,
+                                stride: mip_width
+                                    * (uncompressed_format.num_channels()
+                                        * uncompressed_format.bytes_per_channel())
+                                        as u32,
+                                data,
+                            };
+
+                            intel_tex_2::etc1::compress_blocks(
+                                intel_tex_2::etc1::EncodeSettings {
+                                    fast_skip_threshold: 6,
+                                },
                                 &surface,
                             )
                         }
