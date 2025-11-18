@@ -105,7 +105,7 @@ impl CompressedTextureFormat {
         match self {
             Self::Bc4RUnorm => 8,
             Self::Bc5RgUnorm | Self::Bc7RgbaUnorm | Self::Bc6hRgbUfloat => 16,
-            Self::Etc1 => 4,
+            Self::Etc1 => 8,
         }
     }
 
@@ -120,7 +120,7 @@ impl CompressedTextureFormat {
             Self::Bc5RgUnorm => wgpu::TextureFormat::Bc5RgUnorm,
             Self::Bc7RgbaUnorm => wgpu::TextureFormat::Bc7RgbaUnorm,
             Self::Bc6hRgbUfloat => wgpu::TextureFormat::Bc6hRgbUfloat,
-            Self::Etc1 => wgpu::TextureFormat::Etc2Rgba8Unorm,
+            Self::Etc1 => wgpu::TextureFormat::Etc2Rgb8Unorm,
         }
     }
 }
