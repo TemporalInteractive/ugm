@@ -105,7 +105,7 @@ impl CompressedTextureFormat {
         match self {
             Self::Bc4RUnorm => 8,
             Self::Bc5RgUnorm | Self::Bc7RgbaUnorm | Self::Bc6hRgbUfloat => 16,
-            Self::Etc1 => 8,
+            Self::Etc1 => 4,
         }
     }
 
